@@ -129,7 +129,7 @@ The operation required four sequential steps per cluster:
 
 <br>
 
-**Not only that, but we had to run this alongside existing critical time-sensitive operations — all happening simultaneously, without disrupting any of them.**
+**Not only that, but we had to run this alongside existing critical time-sensitive operations, all happening simultaneously, without disrupting any of them.**
 
 The rollout followed four stages:
 
@@ -169,13 +169,13 @@ The rollout followed four stages:
 
 Before the patterns, here's what Tokio gives you out of the box:
 
-**`JoinSet`** — a collection of async tasks with bounded capacity. Drop it, and everything gets cancelled. No orphaned work, no forgotten cleanup paths.
+**`JoinSet`**: a collection of async tasks with bounded capacity. Drop it, and everything gets cancelled. No orphaned work, no forgotten cleanup paths.
 
-**`select!`** — race multiple futures simultaneously. First to complete wins, the rest are cancelled. Makes timeout and multi-event handling precise and readable.
+**`select!`**: race multiple futures simultaneously. First to complete wins, the rest are cancelled. Makes timeout and multi-event handling precise and readable.
 
-**`Interval` with `MissedTickBehavior::Delay`** — recurring async ticks. `Delay` prevents catch-up storms when work runs long.
+**`Interval` with `MissedTickBehavior::Delay`**: recurring async ticks. `Delay` prevents catch-up storms when work runs long.
 
-**`tokio::spawn`** — lightweight tasks (~2KB vs ~2MB per OS thread). Each yields at `.await`, letting 50+ tasks share a single runtime without blocking each other.
+**`tokio::spawn`**: lightweight tasks (~2KB vs ~2MB per OS thread). Each yields at `.await`, letting 50+ tasks share a single runtime without blocking each other.
 
 In most systems, you prevent bugs through discipline: code reviews, documentation, runbooks that say "don't exceed 50 concurrent requests." But Tokio lets you actually encode your system's intents and behaviors directly into the code. When you combine these primitives correctly, you're encoding your system's invariants into domain types and enforcing them at compile time and runtime, not just in comments and conventions.
 
@@ -229,7 +229,7 @@ async fn test_concurrent_operations() {
 Two things make Turmoil especially powerful:
 
 - **Simulated time**: test hours of operations in milliseconds
-- **Deterministic replay**: same seed, same execution order, every time — critical for reproducing race conditions
+- **Deterministic replay**: same seed, same execution order, every time. Critical for reproducing race conditions.
 
 We tested the full lifecycle before gamma: create a cluster, backfill the keys, write data to verify the new key set was operable, run all critical control plane operations, and test rollback and roll-forward strategies. We also tested concurrent operations, things like the backfill racing against scale-to-zero, deletion, and health checks, to verify that optimistic locking worked correctly on our persistence layer where we kept the store of in-progress operations per cluster.
 
@@ -241,7 +241,7 @@ By the time we reached gamma, we'd already validated the hard scenarios. Integra
 
 Here's the foundation: **Tokio tasks are cooperatively scheduled, not preemptively scheduled.**
 
-A task runs until it hits an `.await` point — that's the only moment the runtime can pause it and switch to another task. If a task never yields, it hogs the thread and starves others. Tokio tasks are cheap (spin up as many as you want), but the question is how you control how many are in flight at once.
+A task runs until it hits an `.await` point. That's the only moment the runtime can pause it and switch to another task. If a task never yields, it hogs the thread and starves others. Tokio tasks are cheap (spin up as many as you want), but the question is how you control how many are in flight at once.
 
 **The key pattern: tasks are unbounded. Executors are bounded.**
 
@@ -281,7 +281,7 @@ A task runs until it hits an `.await` point — that's the only moment the runti
 
 
 
-We built an **executor queue** — a domain type backed by `JoinSet`. On every periodic tick, we try to generate new Tokio tasks for expected control plane operations. When the `JoinSet` is at capacity, we drop that intent. This is deliberate.
+We built an **executor queue**, a domain type backed by `JoinSet`. On every periodic tick, we try to generate new Tokio tasks for expected control plane operations. When the `JoinSet` is at capacity, we drop that intent. This is deliberate.
 
 ```rust
 // Any intent — backfill, scale, create, delete
@@ -299,7 +299,7 @@ with_prerequisites(vec![
 .await?;
 ```
 
-Each task has sequential prerequisites: find the cluster, fetch the current key from KMS, generate new keys, store them, validate. While each cluster runs through those steps sequentially, we're enforcing a cap of 10 concurrent operations across thousands of clusters in a region. The `JoinSet` enforces this structurally — you can't accidentally exceed it.
+Each task has sequential prerequisites: find the cluster, fetch the current key from KMS, generate new keys, store them, validate. While each cluster runs through those steps sequentially, we're enforcing a cap of 10 concurrent operations across thousands of clusters in a region. The `JoinSet` enforces this structurally. You can't accidentally exceed it.
 
 ```rust
 // One task generates many intents per tick
@@ -315,7 +315,7 @@ loop {
 }
 ```
 
-Because every `.await` yields the thread, the backfill sweeper blocks on KMS calls, database reads, and S3 writes — and the other 49 critical tasks keep running uninterrupted on the same thread the entire time.
+Because every `.await` yields the thread, the backfill sweeper blocks on KMS calls, database reads, and S3 writes, and the other 49 critical tasks keep running uninterrupted on the same thread the entire time.
 
 ---
 
@@ -377,13 +377,13 @@ tokio::select! {
 }
 ```
 
-If the timeout wins, we fail that task and free up the `JoinSet` slot. On the next tick, we pull up the partial state from wherever we left off and continue driving the work forward. No work is lost — it just retries cleanly.
+If the timeout wins, we fail that task and free up the `JoinSet` slot. On the next tick, we pull up the partial state from wherever we left off and continue driving the work forward. No work is lost. It just retries cleanly.
 
 ---
 
 ## Pattern 4: The Actor Pattern with the Main Event Loop
 
-How does all of this come together? We have one main event loop — the planner loop — that uses `select!` to handle all event sources:
+How does all of this come together? We have one main event loop, the planner loop, that uses `select!` to handle all event sources:
 
 ```rust
 async fn backfill_key_sweep(config: Config) {
@@ -421,7 +421,7 @@ loop {
 }
 ```
 
-The **intent** is a domain type that enforces exactly what parameters are needed and standardizes how work is generated across the system. Adding the backfill was one more line of registration code. The same patterns that protected existing operations — backpressure, shutdown handling, event routing — protected the new one too.
+The **intent** is a domain type that enforces exactly what parameters are needed and standardizes how work is generated across the system. Adding the backfill was one more line of registration code. The same patterns that protected existing operations (backpressure, shutdown handling, event routing) protected the new one too.
 
 `MissedTickBehavior::Delay` means that even if processing runs long, the next tick waits the full interval rather than firing immediately. No catch-up storms, no burst of queued ticks overwhelming the runtime.
 
@@ -492,7 +492,7 @@ These patterns let us roll out CMK support to every live DSQL cluster across eve
 **What worked:**
 - Turmoil let us iterate quickly from our laptops. By the time we got to gamma, the hard work was already done.
 - Bounded concurrency prevented cascading KMS failures under burst traffic.
-- The patterns that protected existing operations protected the new one too — adding the backfill was genuinely low-risk because of the foundation we'd built.
+- The patterns that protected existing operations protected the new one too. Adding the backfill was genuinely low-risk because of the foundation we'd built.
 
 **What's been hard:**
 
@@ -500,7 +500,7 @@ Getting the fairness policy right has required iteration. Balancing the intent t
 
 Telemetry has been the ongoing challenge. Three specific gaps we hit in the Tokio ecosystem:
 
-1. **`tokio_taskdump` is still unstable** and crashes with `tokio::time::sleep`. A stable task dump would be the async equivalent of a thread dump — invaluable for identifying stuck backfill intents without custom instrumentation.
+1. **`tokio_taskdump` is still unstable** and crashes with `tokio::time::sleep`. A stable task dump would be the async equivalent of a thread dump, invaluable for identifying stuck backfill intents without custom instrumentation.
 
 2. **`JoinSet` has no per-task metadata**. There's no way to attach a cluster ID to a `JoinSet` entry. We use CloudWatch metric attribution as a workaround, but it's tedious to navigate for bugs. A parallel `HashMap` kept manually in sync through cancellation and panics is the current approach.
 
@@ -512,8 +512,6 @@ Although I would like to say, we've been seeing promising results with [dial9](h
 
 ## The Takeaway
 
-Tokio's primitives let you encode your system's invariants into domain types and enforce them at compile time and runtime. `JoinSet` gives you bounded concurrency with a built-in cancellation story. `select!` gives you precise timeout and multi-event handling. Together, they let you build a composable execution model where impossible states are unrepresentable.
-
-That's what gave us the confidence to add one more critical task to a running production control plane — and ship it cleanly.
+Tokio's primitives enforce correctness at compile time and at runtime, right out of the box. That's what gives you a predictable execution model in production. And that's what let us add one more critical task to a running control plane without breaking anything.
 
 
