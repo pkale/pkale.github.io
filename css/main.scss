@@ -1,9 +1,6 @@
 ---
 # Main stylesheet
 ---
-@use "sass:math";
-@use "sass:color";
-
 @charset "utf-8";
 
 // Base variables
@@ -20,8 +17,8 @@ $background-color: #fdfdfd;
 $brand-color:      #2a7ae2;
 
 $grey-color:       #828282;
-$grey-color-light: color.adjust($grey-color, $lightness: 40%);
-$grey-color-dark:  color.adjust($grey-color, $lightness: -25%);
+$grey-color-light: lighten($grey-color, 40%);
+$grey-color-dark:  darken($grey-color, 25%);
 
 $content-width:    800px;
 
@@ -49,7 +46,7 @@ body {
 h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
   margin-top: $spacing-unit;
-  margin-bottom: math.div($spacing-unit, 2);
+  margin-bottom: $spacing-unit / 2;
 }
 
 h1 { font-size: 2em; }
@@ -61,7 +58,7 @@ p, ul, ol {
 }
 
 li {
-  margin-bottom: math.div($spacing-unit, 3);
+  margin-bottom: $spacing-unit / 3;
 }
 
 a {
@@ -195,7 +192,7 @@ a {
   margin-bottom: $spacing-unit * 2;
 
   li {
-    margin-bottom: math.div($spacing-unit, 3);
+    margin-bottom: $spacing-unit / 3;
   }
 
   a {
@@ -208,7 +205,7 @@ a {
 
   .post-title {
     font-size: 2em;
-    margin-bottom: math.div($spacing-unit, 4);
+    margin-bottom: $spacing-unit / 4;
   }
 
   .post-meta {
@@ -244,7 +241,7 @@ code {
 }
 
 pre {
-  padding: math.div($spacing-unit, 2);
+  padding: $spacing-unit / 2;
   overflow-x: auto;
 
   code {
