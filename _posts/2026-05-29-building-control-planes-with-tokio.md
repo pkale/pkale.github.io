@@ -506,7 +506,7 @@ Telemetry has been the ongoing challenge. Three specific gaps we hit in the Toki
 
 3. **`tokio-console` requires `--cfg tokio_unstable`**, which is a real barrier to production use. Stabilizing the instrumentation APIs would close the biggest gap in backfill observability.
 
-Although I would like to say, we've been seeing promising results with [dial9](https://tokio.rs/blog/2026-03-18-dial9) to help close these gaps. dial9 is a flight recorder for Tokio — it captures the full timeline of runtime events (individual polls, parks, wakes) correlated with Linux kernel events, giving you a complete picture of how your application interacts with the runtime. Unlike aggregate metrics, it lets you see exactly where tasks are getting stuck, which workers are idle while queues are full, and how tasks move across workers over time. It runs in production with under 5% overhead, which makes it practical for the kinds of issues that only show up at scale.
+Although I would like to say, we've been seeing promising results with [dial9](https://tokio.rs/blog/2026-03-18-dial9) to help close these gaps. It's a flight recorder for Tokio that gives you a full timeline of runtime events correlated with the OS, and it runs in production with under 5% overhead. Worth checking out if you're hitting similar observability challenges.
 
 ---
 
